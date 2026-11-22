@@ -1,0 +1,103 @@
+@url = http://localhost:3000
+
+### ---------- INSCRIPTION ----------
+
+### Inscription → 201, avec id, username et email (PAS de mot de passe)
+POST {{url}}/auth/register
+Content-Type: application/json
+
+{ "email": "alex@example.com", "username": "alex", "password": "Password123" }
+
+### Mêmes données une 2e fois → 409
+POST {{url}}/auth/register
+Content-Type: application/json
+
+{ "email": "alex@example.com", "username": "alex", "password": "Password123" }
+
+### Même email, autre pseudo → 409
+POST {{url}}/auth/register
+Content-Type: application/json
+
+{ "email": "alex@example.com", "username": "alexbis", "password": "Password123" }
+
+### Email invalide → 400
+POST {{url}}/auth/register
+Content-Type: application/json
+
+{ "email": "alex-example.com", "username": "alex2", "password": "Password123" }
+
+### Pseudo avec caractères spéciaux → 400
+POST {{url}}/auth/register
+Content-Type: application/json
+
+{ "email": "a2@example.com", "username": "al!ex", "password": "Password123" }
+
+### Pseudo trop court (moins de 3) → 400
+POST {{url}}/auth/register
+Content-Type: application/json
+
+{ "email": "a3@example.com", "username": "al", "password": "Password123" }
+
+### Pseudo trop long (plus de 20) → 400
+POST {{url}}/auth/register
+Content-Type: application/json
+
+{ "email": "a3b@example.com", "username": "unpseudobeaucouptroplong", "password": "Password123" }
+
+### Mot de passe sans majuscule → 400
+POST {{url}}/auth/register
+Content-Type: application/json
+
+{ "email": "a4@example.com", "username": "alex4", "password": "password123" }
+
+### Mot de passe trop court → 400
+POST {{url}}/auth/register
+Content-Type: application/json
+
+{ "email": "a5@example.com", "username": "alex5", "password": "Pass12" }
+
+### Body vide → 400
+POST {{url}}/auth/register
+Content-Type: application/json
+
+{}
+
+### ---------- CONNEXION ----------
+
+### Connexion → 200 avec le token
+# @name login
+POST {{url}}/auth/login
+Content-Type: application/json
+
+{ "email": "alex@example.com", "password": "Password123" }
+
+### Mauvais mot de passe (mauvaise casse) → 401 "Email ou mot de passe incorrect"
+POST {{url}}/auth/login
+Content-Type: application/json
+
+{ "email": "alex@example.com", "password": "password123" }
+
+### Email inexistant → 401, EXACTEMENT le même message
+POST {{url}}/auth/login
+Content-Type: application/json
+
+{ "email": "personne@example.com", "password": "Password123" }
+
+### Body vide → 400
+POST {{url}}/auth/login
+Content-Type: application/json
+
+{}
+
+### ---------- DÉCONNEXION ----------
+
+### Déconnexion → 200 (le token vient de la requête "login" ci-dessus)
+POST {{url}}/auth/logout
+Authorization: Bearer {{login.response.body.$.token}}
+
+### Déconnexion sans token → 401
+POST {{url}}/auth/logout
+
+### Déconnexion avec un faux token → 401
+POST {{url}}/auth/logout
+Authorization: Bearer abc.def.ghi

@@ -1,0 +1,95 @@
+@url = http://localhost:3000
+
+### ---------- PRÉPARATION : 2 utilisateurs ----------
+### À envoyer dans l'ordre, de haut en bas, la première fois.
+### Les tokens durent 1h : si je reçois des 401, je dois renvoyer les 2 connexions.
+
+### Inscription d'Alex → 201 (ou 409 s'il existe déjà : pas grave)
+POST {{url}}/auth/register
+Content-Type: application/json
+
+{ "email": "alex@example.com", "username": "alex", "password": "Password123" }
+
+### Inscription de Bob → 201 (ou 409 s'il existe déjà : pas grave)
+POST {{url}}/auth/register
+Content-Type: application/json
+
+{ "email": "bob@example.com", "username": "bob", "password": "Password123" }
+
+### Connexion d'Alex → 200 avec son token
+# @name loginAlex
+POST {{url}}/auth/login
+Content-Type: application/json
+
+{ "email": "alex@example.com", "password": "Password123" }
+
+### Connexion de Bob → 200 avec son token
+# @name loginBob
+POST {{url}}/auth/login
+Content-Type: application/json
+
+{ "email": "bob@example.com", "password": "Password123" }
+
+### Alex crée une équipe → 201 (son id est réutilisé dans toutes les requêtes suivantes)
+# @name createTeam
+POST {{url}}/teams
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{ "name": "Equipe Alex" }
+
+### ---------- BOB ESSAIE DE TOUCHER À L'ÉQUIPE D'ALEX ----------
+
+### Bob lit l'équipe d'Alex → 200 (la lecture est ouverte à tout le monde)
+GET {{url}}/teams/{{createTeam.response.body.$.id}}
+
+### Bob renomme l'équipe d'Alex → 403
+PATCH {{url}}/teams/{{createTeam.response.body.$.id}}
+Content-Type: application/json
+Authorization: Bearer {{loginBob.response.body.$.token}}
+
+{ "name": "Piratage" }
+
+### Bob ajoute un Pokémon à l'équipe d'Alex → 403
+POST {{url}}/teams/{{createTeam.response.body.$.id}}/pokemons
+Content-Type: application/json
+Authorization: Bearer {{loginBob.response.body.$.token}}
+
+{ "pokemonId": 25 }
+
+### Bob supprime l'équipe d'Alex → 403
+DELETE {{url}}/teams/{{createTeam.response.body.$.id}}
+Authorization: Bearer {{loginBob.response.body.$.token}}
+
+### ---------- ALEX FAIT LES MÊMES ACTIONS SUR SON ÉQUIPE ----------
+
+### Alex renomme son équipe → 200
+PATCH {{url}}/teams/{{createTeam.response.body.$.id}}
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{ "name": "Equipe Alex renommee" }
+
+### Alex ajoute un Pokémon à son équipe → 201
+POST {{url}}/teams/{{createTeam.response.body.$.id}}/pokemons
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{ "pokemonId": 25 }
+
+### Bob retire le Pokémon de l'équipe d'Alex → 403
+DELETE {{url}}/teams/{{createTeam.response.body.$.id}}/pokemons/25
+Authorization: Bearer {{loginBob.response.body.$.token}}
+
+### Alex supprime son équipe → 200 avec le message de confirmation
+DELETE {{url}}/teams/{{createTeam.response.body.$.id}}
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+### ---------- BOB A SES PROPRES ÉQUIPES ----------
+
+### Bob crée sa propre équipe → 201, avec un user_id différent de celui d'Alex
+POST {{url}}/teams
+Content-Type: application/json
+Authorization: Bearer {{loginBob.response.body.$.token}}
+
+{ "name": "Equipe Bob" }

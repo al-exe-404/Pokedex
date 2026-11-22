@@ -1,0 +1,150 @@
+@url = http://localhost:3000
+
+### ---------- PRÉPARATION : 2 utilisateurs ----------
+### À envoyer dans l'ordre, de haut en bas, la première fois.
+### Les tokens durent 1h : si je reçois des 401, je dois renvoyer les 2 connexions.
+
+### Inscription d'Alex → 201 (ou 409 s'il existe déjà : pas grave)
+POST {{url}}/auth/register
+Content-Type: application/json
+
+{ "email": "alex@example.com", "username": "alex", "password": "Password123" }
+
+### Inscription de Bob → 201 (ou 409 s'il existe déjà : pas grave)
+POST {{url}}/auth/register
+Content-Type: application/json
+
+{ "email": "bob@example.com", "username": "bob", "password": "Password123" }
+
+### Connexion d'Alex → 200 avec son token
+# @name loginAlex
+POST {{url}}/auth/login
+Content-Type: application/json
+
+{ "email": "alex@example.com", "password": "Password123" }
+
+### Connexion de Bob → 200 avec son token
+# @name loginBob
+POST {{url}}/auth/login
+Content-Type: application/json
+
+{ "email": "bob@example.com", "password": "Password123" }
+
+### ---------- NETTOYAGE : repartir de zéro ----------
+### Les favoris restent en base : on retire ceux des tests pour pouvoir rejouer le fichier.
+### Chaque requête répond 200 (retiré) ou 404 (n'était pas là) : les deux sont normaux.
+
+### Alex retire Pikachu → 200 ou 404
+DELETE {{url}}/favorites/25
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+### Alex retire Dracaufeu → 200 ou 404
+DELETE {{url}}/favorites/6
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+### Bob retire Pikachu → 200 ou 404
+DELETE {{url}}/favorites/25
+Authorization: Bearer {{loginBob.response.body.$.token}}
+
+### ---------- SANS CONNEXION ----------
+
+### Lister les favoris sans être connecté → 401
+GET {{url}}/favorites
+
+### Ajouter un favori sans être connecté → 401
+POST {{url}}/favorites/25
+
+### Retirer un favori sans être connecté → 401
+DELETE {{url}}/favorites/25
+
+### ---------- ALEX AJOUTE DES FAVORIS ----------
+
+### Les favoris d'Alex au départ → 200 avec []
+GET {{url}}/favorites
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+### Alex ajoute Pikachu → 201 avec la liste (Pikachu et ses types)
+POST {{url}}/favorites/25
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+### Alex ajoute Dracaufeu → 201 avec la liste (Dracaufeu puis Pikachu, triés par id)
+POST {{url}}/favorites/6
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+### Alex ajoute Pikachu une 2e fois → 409
+POST {{url}}/favorites/25
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+### Alex ajoute un Pokémon inexistant → 404
+POST {{url}}/favorites/999
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+### Id invalide → 400
+POST {{url}}/favorites/abc
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+### Les favoris d'Alex → 200 avec Dracaufeu et Pikachu
+GET {{url}}/favorites
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+### ---------- BOB A SES PROPRES FAVORIS ----------
+
+### Les favoris de Bob sont séparés de ceux d'Alex → 200 avec []
+GET {{url}}/favorites
+Authorization: Bearer {{loginBob.response.body.$.token}}
+
+### Bob ajoute Pikachu (déjà favori d'Alex, mais pas le sien) → 201 avec Pikachu seulement
+POST {{url}}/favorites/25
+Authorization: Bearer {{loginBob.response.body.$.token}}
+
+### ---------- NOMBRE DE FAVORIS PAR POKÉMON (visible par tout le monde, sans connexion) ----------
+### À ce stade : Pikachu est favori d'Alex et de Bob, Dracaufeu seulement d'Alex.
+
+### Détail de Pikachu → 200 avec favorites_count: 2
+GET {{url}}/pokemons/25
+
+### Détail de Dracaufeu → 200 avec favorites_count: 1
+GET {{url}}/pokemons/6
+
+### Détail d'un Pokémon sans favori (Bulbizarre) → 200 avec favorites_count: 0
+GET {{url}}/pokemons/1
+
+### Liste des Pokémons → 200, chaque Pokémon a un favorites_count (Pikachu 2, Dracaufeu 1, les autres 0)
+GET {{url}}/pokemons
+
+### Recherche → 200, Pikachu avec favorites_count: 2
+GET {{url}}/pokemons/search?name=pika
+
+### ---------- TOP 10 DES POKÉMONS LES PLUS POPULAIRES (visible par tout le monde, sans connexion) ----------
+
+### Top 10 → 200 avec Pikachu (favorites_count: 2) puis Dracaufeu (favorites_count: 1), sans aucun Pokémon à 0
+GET {{url}}/pokemons/popular
+
+### ---------- ALEX RETIRE DES FAVORIS ----------
+
+### Alex retire Pikachu → 200 avec la liste (Dracaufeu seulement)
+DELETE {{url}}/favorites/25
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+### Alex retire Pikachu une 2e fois (n'est plus dans ses favoris) → 404
+DELETE {{url}}/favorites/25
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+### Alex retire un Pokémon inexistant → 404
+DELETE {{url}}/favorites/999
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+### Bob a toujours Pikachu dans ses favoris (le retrait d'Alex ne l'a pas touché) → 200 avec Pikachu
+GET {{url}}/favorites
+Authorization: Bearer {{loginBob.response.body.$.token}}
+
+### ---------- COMPTEUR APRÈS LES RETRAITS ----------
+
+### Détail de Pikachu → 200 avec favorites_count: 1 (il ne reste que Bob)
+GET {{url}}/pokemons/25
+
+### Détail de Dracaufeu → 200 avec favorites_count: 1 (toujours Alex)
+GET {{url}}/pokemons/6
+
+### Top 10 → 200 avec Dracaufeu puis Pikachu : égalité à 1 favori chacun, le plus petit id (Dracaufeu, 6) passe en premier
+GET {{url}}/pokemons/popular

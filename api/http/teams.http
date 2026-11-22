@@ -1,0 +1,292 @@
+@url = http://localhost:3000
+
+### ---------- PRÉPARATION : 2 utilisateurs ----------
+### À envoyer dans l'ordre, de haut en bas, la première fois.
+### Les tokens durent 1h : si je reçois des 401, je dois renvoyer les connexions.
+
+### Inscription d'Alex → 201 (ou 409 s'il existe déjà : pas grave)
+POST {{url}}/auth/register
+Content-Type: application/json
+
+{ "email": "alex@example.com", "username": "alex", "password": "Password123" }
+
+### Inscription de Bob → 201 (ou 409 s'il existe déjà : pas grave)
+POST {{url}}/auth/register
+Content-Type: application/json
+
+{ "email": "bob@example.com", "username": "bob", "password": "Password123" }
+
+### Connexion d'Alex → 200 avec son token
+# @name loginAlex
+POST {{url}}/auth/login
+Content-Type: application/json
+
+{ "email": "alex@example.com", "password": "Password123" }
+
+### Connexion de Bob → 200 avec son token
+# @name loginBob
+POST {{url}}/auth/login
+Content-Type: application/json
+
+{ "email": "bob@example.com", "password": "Password123" }
+
+### ---------- LECTURE (sans connexion) ----------
+
+### Liste des équipes → 200, seulement les équipes du seed (celles sans propriétaire)
+GET {{url}}/teams
+
+### Détail d'une équipe du seed → 200
+GET {{url}}/teams/1
+
+### Équipe inexistante → 404
+GET {{url}}/teams/999
+
+### Id invalide → 400
+GET {{url}}/teams/abc
+
+### ---------- CRÉATION ET MODIFICATION ----------
+
+### Créer sans être connecté → 401
+POST {{url}}/teams
+Content-Type: application/json
+
+{ "name": "Ma team" }
+
+### Créer une équipe connecté → 201 (avec ton user_id, son id est réutilisé dans toutes les requêtes suivantes)
+# @name createTeam
+POST {{url}}/teams
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{ "name": "Ma team" }
+
+### Créer sans nom → 400
+POST {{url}}/teams
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{}
+
+### Créer avec un nom de plus de 50 caractères → 400
+POST {{url}}/teams
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{ "name": "Un nom beaucoup beaucoup beaucoup trop long pour une équipe" }
+
+### Renommer MON équipe → 200
+PATCH {{url}}/teams/{{createTeam.response.body.$.id}}
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{ "name": "Nouveau nom" }
+
+### Modifier le nom ET la description de MON équipe → 200 avec la nouvelle description
+PATCH {{url}}/teams/{{createTeam.response.body.$.id}}
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{ "name": "Nouveau nom", "description": "Une description modifiée" }
+
+### Renommer sans toucher à la description → 200, la description est inchangée
+PATCH {{url}}/teams/{{createTeam.response.body.$.id}}
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{ "name": "Encore un nom" }
+
+### Effacer la description (chaîne vide) → 200 avec "description": null
+PATCH {{url}}/teams/{{createTeam.response.body.$.id}}
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{ "name": "Encore un nom", "description": "" }
+
+### Description qui n'est pas un texte → 400
+PATCH {{url}}/teams/{{createTeam.response.body.$.id}}
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{ "name": "Encore un nom", "description": 42 }
+
+### Renommer sans nom → 400
+PATCH {{url}}/teams/{{createTeam.response.body.$.id}}
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{}
+
+### Renommer une équipe du seed (pas à moi) → 403
+PATCH {{url}}/teams/1
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{ "name": "Piratage" }
+
+### Renommer avec un faux token → 401
+PATCH {{url}}/teams/{{createTeam.response.body.$.id}}
+Content-Type: application/json
+Authorization: Bearer abc.def.ghi
+
+{ "name": "Nouveau nom" }
+
+### ---------- POKÉMONS DANS L'ÉQUIPE ----------
+
+### Ajouter sans pokemonId → 400
+POST {{url}}/teams/{{createTeam.response.body.$.id}}/pokemons
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{}
+
+### Ajouter un pokemonId qui n'est pas un nombre → 400
+POST {{url}}/teams/{{createTeam.response.body.$.id}}/pokemons
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{ "pokemonId": "abc" }
+
+### Ajouter un Pokémon à MON équipe → 201
+POST {{url}}/teams/{{createTeam.response.body.$.id}}/pokemons
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{ "pokemonId": 25 }
+
+### Remplir l'équipe : 2e Pokémon → 201
+POST {{url}}/teams/{{createTeam.response.body.$.id}}/pokemons
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{ "pokemonId": 1 }
+
+### Remplir l'équipe : 3e Pokémon → 201
+POST {{url}}/teams/{{createTeam.response.body.$.id}}/pokemons
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{ "pokemonId": 4 }
+
+### Remplir l'équipe : 4e Pokémon → 201
+POST {{url}}/teams/{{createTeam.response.body.$.id}}/pokemons
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{ "pokemonId": 7 }
+
+### Remplir l'équipe : 5e Pokémon → 201
+POST {{url}}/teams/{{createTeam.response.body.$.id}}/pokemons
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{ "pokemonId": 39 }
+
+### Remplir l'équipe : 6e Pokémon → 201 (l'équipe est pleine)
+POST {{url}}/teams/{{createTeam.response.body.$.id}}/pokemons
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{ "pokemonId": 52 }
+
+### Ajouter un 7e Pokémon à MON équipe pleine → 400
+POST {{url}}/teams/{{createTeam.response.body.$.id}}/pokemons
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{ "pokemonId": 94 }
+
+### Ajouter un Pokémon déjà présent → 409
+POST {{url}}/teams/{{createTeam.response.body.$.id}}/pokemons
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{ "pokemonId": 25 }
+
+### Ajouter un Pokémon à une équipe du seed → 403
+POST {{url}}/teams/1/pokemons
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{ "pokemonId": 25 }
+
+### Retirer un Pokémon de MON équipe → 200
+DELETE {{url}}/teams/{{createTeam.response.body.$.id}}/pokemons/25
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+### Retirer sans être connecté → 401
+DELETE {{url}}/teams/{{createTeam.response.body.$.id}}/pokemons/25
+
+### ---------- SCORE DES ÉQUIPES ----------
+
+### Liste des équipes vue par Alex → 200, les équipes du seed ET les siennes, chacune avec un champ score
+GET {{url}}/teams
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+### Détail de MON équipe (5 Pokémons à ce stade, Pikachu a été retiré) → 200 avec score { offensive, defensive, speed, global }
+GET {{url}}/teams/{{createTeam.response.body.$.id}}
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+### Créer une 2e équipe, vide → 201
+# @name createEmptyTeam
+POST {{url}}/teams
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{ "name": "Equipe vide" }
+
+### Équipe vide → 200 avec un score à 0 partout
+GET {{url}}/teams/{{createEmptyTeam.response.body.$.id}}
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+### Ajouter Pikachu à l'équipe vide → 201, le score est celui de Pikachu tout seul
+POST {{url}}/teams/{{createEmptyTeam.response.body.$.id}}/pokemons
+Content-Type: application/json
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+{ "pokemonId": 25 }
+
+### ---------- CONFIDENTIALITÉ : chacun ne voit que ses équipes ----------
+
+### Alex lit sa propre équipe → 200
+GET {{url}}/teams/{{createTeam.response.body.$.id}}
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+### Bob liste les équipes → 200, SANS les équipes d'Alex (seulement celles du seed)
+GET {{url}}/teams
+Authorization: Bearer {{loginBob.response.body.$.token}}
+
+### Bob lit l'équipe d'Alex → 404
+GET {{url}}/teams/{{createTeam.response.body.$.id}}
+Authorization: Bearer {{loginBob.response.body.$.token}}
+
+### Un visiteur (sans token) lit l'équipe d'Alex → 404
+GET {{url}}/teams/{{createTeam.response.body.$.id}}
+
+### Un visiteur avec un faux token lit l'équipe d'Alex → 404 (traité comme un visiteur, pas de 401)
+GET {{url}}/teams/{{createTeam.response.body.$.id}}
+Authorization: Bearer abc.def.ghi
+
+### Bob lit une équipe du seed → 200 (les équipes sans propriétaire restent publiques)
+GET {{url}}/teams/1
+Authorization: Bearer {{loginBob.response.body.$.token}}
+
+### Bob renomme l'équipe d'Alex → 403 (isTeamOwner)
+PATCH {{url}}/teams/{{createTeam.response.body.$.id}}
+Content-Type: application/json
+Authorization: Bearer {{loginBob.response.body.$.token}}
+
+{ "name": "Piratage" }
+
+### ---------- SUPPRESSION ----------
+
+### Supprimer une équipe du seed → 403
+DELETE {{url}}/teams/1
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+### Supprimer MON équipe → 200 avec le message de confirmation
+DELETE {{url}}/teams/{{createTeam.response.body.$.id}}
+Authorization: Bearer {{loginAlex.response.body.$.token}}
+
+### Supprimer l'équipe vide (celle des tests du score) → 200
+DELETE {{url}}/teams/{{createEmptyTeam.response.body.$.id}}
+Authorization: Bearer {{loginAlex.response.body.$.token}}

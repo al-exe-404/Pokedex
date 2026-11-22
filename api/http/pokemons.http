@@ -1,0 +1,37 @@
+@url = http://localhost:3000
+
+### Liste des Pokémons → 200, 151 Pokémons avec leurs types
+GET {{url}}/pokemons
+
+### Détail d'un Pokémon → 200 (Pikachu, type Électrik)
+GET {{url}}/pokemons/25
+
+### Pokémon inexistant → 404
+GET {{url}}/pokemons/999
+
+### Id invalide → 400
+GET {{url}}/pokemons/abc
+
+### Route inconnue → 404 en JSON { "error": "Route introuvable" }
+GET {{url}}/nimportequoi
+
+
+### ---------- BARRE DE RECHERCHE (filtre) ----------
+
+### Recherche par nom : la casse est ignorée (PIKA trouve Pikachu) → 200
+GET {{url}}/pokemons/search?name=PIKA
+
+### Recherche par type, limitée à 20 : il y a plus de 20 Pokémons de type Eau, on en reçoit exactement 20 → 200
+GET {{url}}/pokemons/search?type=eau
+
+### Nom et type combinés : les deux conditions doivent être vraies → 200
+GET {{url}}/pokemons/search?name=car&type=eau
+
+### Trop court → 400
+GET {{url}}/pokemons/search?name=pi
+
+### Aucun paramètre → 400
+GET {{url}}/pokemons/search
+
+### Aucun résultat → 200 avec un tableau vide
+GET {{url}}/pokemons/search?name=zzzzz

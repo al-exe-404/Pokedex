@@ -1,0 +1,24 @@
+/* Le fond est dessiné par Background.svelte : le body reste transparent */
+body {
+  background-color: transparent;
+}
+
+html {
+  background-color: #0f1522;
+}
+
+html[data-theme="light"] {
+  background-color: #bfe0ff;
+}
+
+/* Grille de cartes : autant de colonnes de 180px minimum que la largeur le permet */
+.pokemon-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 1.5rem;
+  padding: 1rem;
+}
+
+.box {
+  background-color: var(--bulma-scheme-main);
+}

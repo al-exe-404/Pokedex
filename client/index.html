@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="fr" data-theme="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/pokeball.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pokedex</title>
+
+    <script>
+      // Applique le thème enregistré AVANT que la page s'affiche : sans ça,
+      // on verrait un flash du thème sombre avant de passer au thème clair
+      document.documentElement.dataset.theme =
+        localStorage.getItem("pokedex_theme") === "light" ? "light" : "dark";
+    </script>
+
+    <!-- Bulma, comme dans le kit de l'école -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
