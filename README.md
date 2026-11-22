@@ -1,5 +1,9 @@
 # Pokedex
 
+| Mode sombre | Mode clair |
+|---|---|
+| ![Mode sombre](./docs/capture-sombre.png) | ![Mode clair](./docs/capture-clair.png) |
+
 API REST de Pokedex (les 151 Pokemons des versions Rouge et Bleu) avec un systeme d'equipes, de favoris et de recherche, plus un petit client en Svelte pour la consommer.
 
 Challenge solo de 5 jours réalisé en fin de bloc B (Back-End) de ma formation CDA chez O'Clock : concevoir et livrer une API REST complète. Le client Svelte a été fait plus tard, sur mon temps libre, pour finir le projet et pouvoir l'exposer.
